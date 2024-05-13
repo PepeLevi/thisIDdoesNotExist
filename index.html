@@ -27,19 +27,33 @@
             margin: -160px auto 0; /* Center the canvas horizontally */
         }
 
+        #loading-text {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            text-decoration: underline;
+        }
+
     </style>
 </head>
 <body>
     <!-- Canvas element for displaying images -->
     <canvas id="canvas" width="512" height="512"></canvas>
-
+    <div id="loading-text">Loading ID...</div>
     <script>
         // Run the model when the page is loaded
         window.onload = function() {
             generateImage();
             const canvas = document.getElementById('canvas');
             canvas.addEventListener('click', generateImage);
+            hideLoadingText();
         };
+
+        function hideLoadingText() {
+            document.getElementById('loading-text').style.display = 'none';
+        }
     </script>
 </body>
 </html>
