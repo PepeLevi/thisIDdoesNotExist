@@ -29,26 +29,26 @@
 
         #loading-text {
             position: absolute;
-            bottom: 20px;
+            margin: -160px auto 0;
             left: 50%;
             transform: translateX(-50%);
             color: #fff;
             text-decoration: underline;
+            z-index: -1;
         }
 
     </style>
 </head>
 <body>
     <!-- Canvas element for displaying images -->
-    <canvas id="canvas" width="512" height="512"></canvas>
     <div id="loading-text">Loading ID...</div>
+    <canvas id="canvas" width="512" height="512"></canvas>
     <script>
         // Run the model when the page is loaded
         window.onload = function() {
             generateImage();
             const canvas = document.getElementById('canvas');
             canvas.addEventListener('click', generateImage);
-            hideLoadingText();
         };
 
         function hideLoadingText() {
