@@ -1,0 +1,9 @@
+{
+    "description": "ResNet, 128x128 (252 MB)",
+    "model": "./model/resnet128/model.json",
+    "modelSize": 128,
+    "modelLatentDim": 128,
+    "transpose": [1, 2, 0],
+    "modelType": "layers",
+    "outputRange": [-1, 1]
+}

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TensorFlow.js Example</title>
+    <!-- Include TensorFlow.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3"></script>
+</head>
+<body>
+    <!-- Canvas element for displaying images -->
+    <canvas id="canvas" width="512" height="512"></canvas>
+
+    <script>
+        // JavaScript code using TensorFlow.js
+        async function runModel() {
+            // Load the pre-trained model (replace 'model.json' with actual path)
+            const model = await tf.loadGraphModel('/model/resnet128/model.json');
+
+            // Generate noise data
+            const noise = tf.randomNormal([1, noiseSize]);
+
+            // Run inference on the model
+            const images = model.predict(noise);
+
+            // Convert the TensorFlow.js tensor to a JavaScript array
+            const imageArray = await images.array();
+
+            // Convert the image array to an image and display it on a canvas
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const imageData = new ImageData(imageArray, 512, 512);
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        // Run the model when the page is loaded
+        window.onload = runModel;
+    </script>
+</body>
+</html>
