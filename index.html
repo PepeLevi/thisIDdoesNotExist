@@ -15,32 +15,72 @@
     <button onclick="generateImage()">Generate Image</button>
 
     <script>
-        // JavaScript code using TensorFlow.js
-        async function runModel() {
-            // Load the pre-trained model (replace 'model.json' with actual path)
-            const model = await tf.loadGraphModel('https://github.com/PepeLevi/thisIDdoesNotExist/blob/main/model/resnet128/manifest.json');
+        // Define the class for model loading and generation
+        class ModelGenerator {
+            constructor(modelPath) {
+                this.modelPath = modelPath;
+                this.modelInfo = null;
+                this.latentSize = null;
+                this.model = null;
+            }
 
-            return model;
+            async loadModel() {
+                this.modelInfo = await fetch(this.modelPath).then(r => r.json());
+                this.latentSize = this.modelInfo.modelLatentDim;
+                if (this.modelInfo.modelType === "graph") {
+                    this.model = await tf.loadGraphModel(this.modelInfo.model);
+                } else if (this.modelInfo.modelType === "layers") {
+                    this.model = await tf.loadLayersModel(this.modelInfo.model);
+                } else {
+                    throw new Error("You must specify 'graph' or 'layers' for the modelType parameter of `manifest.json`.");
+                }
+            }
+
+            async generate(latentVector) {
+                if (!latentVector) latentVector = tf.randomNormal([1, this.latentSize]);
+                else latentVector = tf.tensor(latentVector, [1, this.latentSize]);
+
+                let transpose = this.modelInfo.transpose || [0, 1, 2]; // such that shape=[128, 128, 3]
+                let imageTensor = this.model.predict(latentVector).squeeze().transpose(transpose);
+                if (this.modelInfo.outputRange && this.modelInfo.outputRange[0] === -1) imageTensor = imageTensor.div(tf.scalar(2)).add(tf.scalar(0.5));
+
+                const raw = await tf.browser.toPixels(imageTensor);
+                const blob = await this.rawToBlob(raw, imageTensor.shape[0], imageTensor.shape[1]);
+
+                imageTensor.dispose();
+
+                return { raw, blob };
+            }
+
+            async rawToBlob(raws, x, y) {
+                const arr = Array.from(raws)
+                const canvas = new OffscreenCanvas(x, y);
+                const ctx = canvas.getContext("2d");
+
+                const imgData = ctx.createImageData(x, y);
+                const { data } = imgData;
+
+                for (let i = 0; i < x * y * 4; i += 1) data[i] = arr[i];
+                ctx.putImageData(imgData, 0, 0);
+
+                return canvas.convertToBlob({ type: "image/jpeg", quality: 0.95 });
+            }
         }
 
+        // Function to generate image on button click
         async function generateImage() {
-            const model = await runModel();
-
-            // Generate noise data
-            const noise = tf.randomNormal([1, noiseSize]);
-
-            // Run inference on the model
-            const images = model.predict(noise);
-
-            // Convert the TensorFlow.js tensor to a JavaScript array
-            const imageTensor = images.squeeze().mul(127.5).add(127.5).cast('int32'); // Scale to [0, 255] and cast to integers
-            const imageArray = await imageTensor.array();
-
-            // Convert the image array to an image and display it on a canvas
+            const modelGenerator = new ModelGenerator('/model/resnet128/manifest.json');
+            await modelGenerator.loadModel();
+            const { raw, blob } = await modelGenerator.generate();
+            // Display the image on a canvas
             const canvas = document.getElementById('canvas');
             const ctx = canvas.getContext('2d');
-            const imageData = new ImageData(imageArray, 512, 512);
-            ctx.putImageData(imageData, 0, 0);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const image = new Image();
+            image.onload = function () {
+                ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+            };
+            image.src = URL.createObjectURL(blob);
         }
 
         // Run the model when the page is loaded
