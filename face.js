@@ -1,12 +1,13 @@
-// Define the class for model loading and generation
 class ModelGenerator {
-    constructor(modelInfo) {
-        this.modelInfo = modelInfo;
+    constructor(modelPath) {
+        this.modelPath = modelPath;
+        this.modelInfo = {};
         this.latentSize = null;
-        this.model = null;
+        this.model = {};
     }
 
     async loadModel() {
+        this.modelInfo = await fetch(this.modelPath).then(r => r.json());
         this.latentSize = this.modelInfo.modelLatentDim;
         if (this.modelInfo.modelType === "graph") {
             this.model = await tf.loadGraphModel(this.modelInfo.model);
@@ -50,13 +51,8 @@ class ModelGenerator {
 
 // Function to generate image on button click
 async function generateImage() {
-    const modelInfo = {
-        modelType: "graph", // Specify 'graph' or 'layers'
-        modelLatentDim: 512, // Adjust according to your model
-        model: 'https://storage.googleapis.com/store.alantian.net/tfjs_gan/chainer-resent256-celebahq-256/tfjs_SmoothedGenerator_40000/model.json',
-        // Add other necessary properties such as transpose, outputRange, etc. if needed
-    };
-    const modelGenerator = new ModelGenerator(modelInfo);
+    const modelPath = 'https://storage.googleapis.com/store.alantian.net/tfjs_gan/chainer-resent256-celebahq-256/tfjs_SmoothedGenerator_40000/manifest.json';
+    const modelGenerator = new ModelGenerator(modelPath);
     await modelGenerator.loadModel();
     const { raw, blob } = await modelGenerator.generate();
     // Display the image on a canvas
