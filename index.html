@@ -7,17 +7,39 @@
     <!-- Include TensorFlow.js library -->
     <script src="./tf.js"></script>
 	<script src="./face.js"></script>
+    <style>
+        body {
+            background-color: #111;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            position: relative; /* Add position relative to body */
+        }
+
+        #canvas-container {
+            position: relative;
+        }
+
+        canvas {
+            display: block;
+            margin: -160px auto 0; /* Center the canvas horizontally */
+        }
+
+    </style>
 </head>
 <body>
     <!-- Canvas element for displaying images -->
     <canvas id="canvas" width="512" height="512"></canvas>
 
-    <!-- Button to generate new image -->
-    <button onclick="generateImage()">Generate Image</button>
-
     <script>
         // Run the model when the page is loaded
-        window.onload = generateImage;
+        window.onload = function() {
+            generateImage();
+            const canvas = document.getElementById('canvas');
+            canvas.addEventListener('click', generateImage);
+        };
     </script>
 </body>
 </html>
