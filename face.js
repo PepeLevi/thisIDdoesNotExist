@@ -1,20 +1,74 @@
-// Import TensorFlow.js
-import * as tf from '@tensorflow/tfjs';
+// Define the class for model loading and generation
+class ModelGenerator {
+    constructor(modelInfo) {
+        this.modelInfo = modelInfo;
+        this.latentSize = null;
+        this.model = null;
+    }
 
-// Load the pre-trained model (replace 'model.json' and 'weights.bin' with actual paths)
-const model = await tf.loadGraphModel('model.json');
+    async loadModel() {
+        this.latentSize = this.modelInfo.modelLatentDim;
+        if (this.modelInfo.modelType === "graph") {
+            this.model = await tf.loadGraphModel(this.modelInfo.model);
+        } else if (this.modelInfo.modelType === "layers") {
+            this.model = await tf.loadLayersModel(this.modelInfo.model);
+        } else {
+            throw new Error("You must specify 'graph' or 'layers' for the modelType parameter of `manifest.json`.");
+        }
+    }
 
-// Generate noise data
-const noise = tf.randomNormal([1, noiseSize]);
+    async generate(latentVector) {
+        if (!latentVector) latentVector = tf.randomNormal([1, this.latentSize]);
+        else latentVector = tf.tensor(latentVector, [1, this.latentSize]);
 
-// Run inference on the model
-const images = model.predict(noise);
+        let transpose = this.modelInfo.transpose || [0, 1, 2]; // such that shape=[128, 128, 3]
+        let imageTensor = this.model.predict(latentVector).squeeze().transpose(transpose);
+        if (this.modelInfo.outputRange && this.modelInfo.outputRange[0] === -1) imageTensor = imageTensor.div(tf.scalar(2)).add(tf.scalar(0.5));
 
-// Convert the TensorFlow.js tensor to a JavaScript array
-const imageArray = await images.array();
+        const raw = await tf.browser.toPixels(imageTensor);
+        const blob = await this.rawToBlob(raw, imageTensor.shape[0], imageTensor.shape[1]);
 
-// Convert the image array to an image and display it on a canvas
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const imageData = new ImageData(imageArray, width, height);
-ctx.putImageData(imageData, 0, 0);
+        imageTensor.dispose();
+
+        return { raw, blob };
+    }
+
+    async rawToBlob(raws, x, y) {
+        const arr = Array.from(raws)
+        const canvas = new OffscreenCanvas(x, y);
+        const ctx = canvas.getContext("2d");
+
+        const imgData = ctx.createImageData(x, y);
+        const { data } = imgData;
+
+        for (let i = 0; i < x * y * 4; i += 1) data[i] = arr[i];
+        ctx.putImageData(imgData, 0, 0);
+
+        return canvas.convertToBlob({ type: "image/jpeg", quality: 0.95 });
+    }
+}
+
+// Function to generate image on button click
+async function generateImage() {
+    const modelInfo = {
+        modelType: "graph", // Specify 'graph' or 'layers'
+        modelLatentDim: 512, // Adjust according to your model
+        model: 'https://storage.googleapis.com/store.alantian.net/tfjs_gan/chainer-resent256-celebahq-256/tfjs_SmoothedGenerator_40000/model.json',
+        // Add other necessary properties such as transpose, outputRange, etc. if needed
+    };
+    const modelGenerator = new ModelGenerator(modelInfo);
+    await modelGenerator.loadModel();
+    const { raw, blob } = await modelGenerator.generate();
+    // Display the image on a canvas
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const image = new Image();
+    image.onload = function () {
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    };
+    image.src = URL.createObjectURL(blob);
+}
+
+// Run the model when the page is loaded
+window.onload = generateImage;
