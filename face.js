@@ -51,7 +51,7 @@ class ModelGenerator {
 
 // Function to generate image on button click
 async function generateImage() {
-    const modelPath = 'https://storage.googleapis.com/store.alantian.net/tfjs_gan/chainer-resent256-celebahq-256/tfjs_SmoothedGenerator_40000/model.json';
+    const modelPath = 'model/resnet128/manifest.json';
     const modelGenerator = new ModelGenerator(modelPath);
     await modelGenerator.loadModel();
     const { raw, blob } = await modelGenerator.generate();
